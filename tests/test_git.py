@@ -59,7 +59,7 @@ class TestGetLastDiff:
         big_diff = "x" * 20_000
         mock_run.return_value = self._mock_run(stdout=big_diff)
         result = get_last_diff(max_bytes=100)
-        assert len(result.encode()) <= 200  # some slack for the notice
+        assert len(result.encode()) <= 200
         assert "truncated" in result
 
     @patch("haiku.git.subprocess.run")

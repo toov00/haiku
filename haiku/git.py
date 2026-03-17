@@ -1,28 +1,22 @@
-
 import subprocess
 from dataclasses import dataclass
 
 
 class GitError(RuntimeError):
-    """Raised when an underlying git command fails."""
-
+    """."""
 
 @dataclass(frozen=True)
 class DiffOptions:
-    """Configuration for how diffs are collected."""
-
     staged: bool = False
     max_bytes: int = 8_000
 
 
 def get_last_diff(staged: bool = False, max_bytes: int = 8_000) -> str:
-    """Return the diff for the last commit, or staged changes when requested."""
     options = DiffOptions(staged=staged, max_bytes=max_bytes)
     return _run_diff(options)
 
 
 def get_last_commit_message() -> str:
-    """Return the commit message from the latest commit."""
     try:
         result = subprocess.run(
             ["git", "log", "-1", "--pretty=%B"],

@@ -18,14 +18,14 @@ _SYSTEM_PROMPT = textwrap.dedent(
     - Output exactly three lines, no titles, no labels, no commentary.
     - Do not name functions, variables, or files literally; evoke feeling instead.
     - Prefer concrete imagery over abstractions.
-    - Seasonal or natural references are welcome but not mandatory.
     - Never use dashes, em-hyphens, or emoji.
     """
 )
 
 
 def _build_user_prompt(diff: str, commit_message: Optional[str]) -> str:
-    """Create the user-facing prompt shown to the model."""
+    tone_hint = _infer_tone(diff=diff, commit_message=commit_message)
+
     if commit_message:
         trimmed_message = commit_message.strip()
         return textwrap.dedent(
@@ -39,6 +39,7 @@ def _build_user_prompt(diff: str, commit_message: Optional[str]) -> str:
             {diff}
 
             Write a single 5-7-5 haiku that reflects the commit and the change.
+            {tone_hint}
             """
         ).strip()
 
@@ -49,8 +50,42 @@ def _build_user_prompt(diff: str, commit_message: Optional[str]) -> str:
         {diff}
 
         Write a single 5-7-5 haiku that captures the spirit of this change.
+        {tone_hint}
         """
     ).strip()
+
+
+def _infer_tone(diff: str, commit_message: Optional[str]) -> str:
+    message = (commit_message or "").lower()
+    lines = diff.splitlines()
+
+    added = 0
+    removed = 0
+    for line in lines:
+        if line.startswith("---") or line.startswith("+++"):
+            continue
+        if line.startswith("+"):
+            added += 1
+        elif line.startswith("-"):
+            removed += 1
+
+    total_changed = added + removed
+    diff_length = len(diff)
+
+    if message.startswith("merge ") or " merge " in message or "merged branch" in message:
+        return (
+            "Let the mood feel like rivers joining or branches weaving back together."
+        )
+
+    if removed >= 50 and removed > added * 2:
+        return "Lean into a quiet, slightly mournful tone for all that was removed."
+
+    if total_changed > 0 and total_changed <= 3 and diff_length < 400:
+        return (
+            "Keep the tone dry and a little deadpan, as if noting a tiny, precise fix."
+        )
+
+    return ""
 
 
 def generate_haiku(
@@ -59,7 +94,6 @@ def generate_haiku(
     *,
     commit_message: Optional[str] = None,
 ) -> str:
-    """Generate a haiku about a git diff, optionally guided by a commit message."""
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         raise RuntimeError(

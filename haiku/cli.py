@@ -44,7 +44,7 @@ def main(staged: bool, model: str, no_color: bool) -> None:
     except RuntimeError as exc:
         click.echo(str(exc), err=True)
         sys.exit(1)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         click.echo(f"generation failed: {exc}", err=True)
         sys.exit(1)
 
