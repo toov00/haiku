@@ -94,4 +94,3 @@ Issues and PRs are very welcome!
 ## License
 
 MIT
-# haiku
