@@ -1,4 +1,4 @@
-## haiku
+# <img src="assets/haiku.png" alt="" width="70" /> haiku
 
 Generates a haiku about your last git diff. Useless and perfect :-)
 

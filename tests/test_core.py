@@ -1,8 +1,20 @@
+
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from haiku.core import generate_haiku, _clean
+from haiku.core import generate_haiku, _clean, _DEFAULT_MODEL
+
+
+def _make_response(text: str) -> MagicMock:
+    message = MagicMock()
+    message.content = text
+    choice = MagicMock()
+    choice.message = message
+    response = MagicMock()
+    response.choices = [choice]
+    return response
 
 
 class TestClean:
@@ -26,35 +38,45 @@ class TestClean:
 
 
 class TestGenerateHaiku:
-    def _make_message(self, text: str) -> MagicMock:
-        block = MagicMock()
-        block.type = "text"
-        block.text = text
-        msg = MagicMock()
-        msg.content = [block]
-        return msg
-
-    @patch("haiku.core.anthropic.Anthropic")
+    @patch.dict(os.environ, {"GROQ_API_KEY": "test-key"})
+    @patch("haiku.core.OpenAI")
     def test_returns_three_line_string(self, mock_cls: MagicMock) -> None:
         poem = "leaf falls from the tree\na function disappears too\nnothing breaks today"
-        mock_cls.return_value.messages.create.return_value = self._make_message(poem)
+        mock_cls.return_value.chat.completions.create.return_value = _make_response(poem)
         result = generate_haiku(diff="--- a\n+++ b\n-old\n+new")
         assert len(result.splitlines()) == 3
 
-    @patch("haiku.core.anthropic.Anthropic")
+    @patch.dict(os.environ, {"GROQ_API_KEY": "test-key"})
+    @patch("haiku.core.OpenAI")
     def test_passes_diff_to_api(self, mock_cls: MagicMock) -> None:
         poem = "one\ntwo\nthree"
-        mock_cls.return_value.messages.create.return_value = self._make_message(poem)
+        mock_cls.return_value.chat.completions.create.return_value = _make_response(poem)
         diff = "some diff content"
         generate_haiku(diff=diff)
-        call_kwargs = mock_cls.return_value.messages.create.call_args[1]
-        user_content = call_kwargs["messages"][0]["content"]
-        assert diff in user_content
+        call_kwargs = mock_cls.return_value.chat.completions.create.call_args[1]
+        user_message = call_kwargs["messages"][1]["content"]
+        assert diff in user_message
 
-    @patch("haiku.core.anthropic.Anthropic")
+    @patch.dict(os.environ, {"GROQ_API_KEY": "test-key"})
+    @patch("haiku.core.OpenAI")
     def test_uses_specified_model(self, mock_cls: MagicMock) -> None:
         poem = "one\ntwo\nthree"
-        mock_cls.return_value.messages.create.return_value = self._make_message(poem)
-        generate_haiku(diff="x", model="claude-opus-4-6")
-        call_kwargs = mock_cls.return_value.messages.create.call_args[1]
-        assert call_kwargs["model"] == "claude-opus-4-6"
+        mock_cls.return_value.chat.completions.create.return_value = _make_response(poem)
+        generate_haiku(diff="x", model="llama-3.3-70b-versatile")
+        call_kwargs = mock_cls.return_value.chat.completions.create.call_args[1]
+        assert call_kwargs["model"] == "llama-3.3-70b-versatile"
+
+    @patch.dict(os.environ, {"GROQ_API_KEY": "test-key"})
+    @patch("haiku.core.OpenAI")
+    def test_uses_default_model(self, mock_cls: MagicMock) -> None:
+        poem = "one\ntwo\nthree"
+        mock_cls.return_value.chat.completions.create.return_value = _make_response(poem)
+        generate_haiku(diff="x")
+        call_kwargs = mock_cls.return_value.chat.completions.create.call_args[1]
+        assert call_kwargs["model"] == _DEFAULT_MODEL
+
+    @patch.dict(os.environ, {}, clear=True)
+    def test_raises_when_key_missing(self) -> None:
+        os.environ.pop("GROQ_API_KEY", None)
+        with pytest.raises(RuntimeError, match="GROQ_API_KEY"):
+            generate_haiku(diff="x")
