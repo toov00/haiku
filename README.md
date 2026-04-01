@@ -54,6 +54,12 @@ Use the staged diff before you commit (nice for previewing):
 haiku --staged
 ```
 
+Copy the haiku to the clipboard after printing (macOS `pbcopy`, Linux `wl-copy` or `xclip`, Windows `clip`):
+
+```bash
+haiku --copy
+```
+
 Full CLI help:
 
 ```text
@@ -63,6 +69,7 @@ Options:
   --staged        Use the staged diff instead of the last commit.
   --model TEXT    Groq model to use.  [default: llama-3.1-8b-instant]
   --no-color      Disable colored output.
+  --copy          Also copy the haiku to the clipboard.
   --help          Show this message and exit.
 ```
 
@@ -79,6 +86,7 @@ Diffs larger than 8 KB are trimmed before being sent so you stay well within tok
 - Reads diffs from your local git repo; no remote calls except to Groq.
 - Uses the `GROQ_API_KEY` environment variable for authentication.
 - The default model is `llama-3.1-8b-instant`, but you can override it with `--model` at the CLI.
+- `--copy` sends the plain three-line haiku to the system clipboard when a supported tool is available.
 - `install_hook.py` adds or removes a simple `post-commit` hook that calls `haiku` after each commit.
 
 ## Limitations

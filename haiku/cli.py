@@ -3,6 +3,7 @@ import sys
 
 import click
 
+from .clipboard import copy_text
 from .core import generate_haiku, _DEFAULT_MODEL
 from .git import get_last_diff, get_last_commit_message, GitError
 from .display import print_haiku
@@ -27,7 +28,14 @@ from .display import print_haiku
     default=False,
     help="Disable colored output.",
 )
-def main(staged: bool, model: str, no_color: bool) -> None:
+@click.option(
+    "--copy",
+    "do_copy",
+    is_flag=True,
+    default=False,
+    help="Also copy the haiku to the clipboard (pbcopy, xclip, wl-copy, or Windows clip).",
+)
+def main(staged: bool, model: str, no_color: bool, do_copy: bool) -> None:
     try:
         diff = get_last_diff(staged=staged)
         commit_message = None if staged else get_last_commit_message()
@@ -49,3 +57,13 @@ def main(staged: bool, model: str, no_color: bool) -> None:
         sys.exit(1)
 
     print_haiku(poem, color=not no_color)
+
+    if do_copy:
+        if copy_text(poem):
+            click.echo("Copied haiku to clipboard.", err=True)
+        else:
+            click.echo(
+                "Could not copy to clipboard. Install pbcopy (macOS), xclip or wl-copy "
+                "(Linux), or use Windows with clip in PATH.",
+                err=True,
+            )
